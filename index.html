@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1b3a4b">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Finanzas">
+  <title>Finanzas</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Fraunces:ital,opsz,wght@1,9..144,560&family=Fredoka:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <main id="login" class="login">
+    <img class="fondo-billete fondo-vuela" src="img/billete-vuela.png" alt="">
+    <img class="fondo-billete fondo-caen" src="img/billetes-caen.png" alt="">
+    <h1 class="saludo">
+      <span class="saludo-y">¿Y</span>
+      <span class="saludo-la">la</span>
+      <span class="saludo-plata">plata?</span>
+    </h1>
+    <img class="caricatura" src="img/esposa-ahorca.png" alt="">
+    <form id="form-login">
+      <div class="campo">
+        <span id="etiqueta-codigo">Código</span>
+        <div class="codigo-cajas" role="group" aria-labelledby="etiqueta-codigo">
+          <input class="digito" type="text" inputmode="numeric" maxlength="4" autocomplete="off" enterkeyhint="next" aria-label="Primer dígito" required>
+          <input class="digito" type="text" inputmode="numeric" maxlength="1" autocomplete="off" enterkeyhint="next" aria-label="Segundo dígito" required>
+          <input class="digito" type="text" inputmode="numeric" maxlength="1" autocomplete="off" enterkeyhint="next" aria-label="Tercer dígito" required>
+          <input class="digito" type="text" inputmode="numeric" maxlength="1" autocomplete="off" enterkeyhint="done" aria-label="Cuarto dígito" required>
+        </div>
+      </div>
+      <button class="boton" type="submit">Entrar</button>
+      <p id="error-login" class="error" role="alert"></p>
+    </form>
+  </main>
+
+  <div id="app" class="app oculto">
+    <header class="tope">
+      <h1 class="saludo saludo-tope">
+        <span class="saludo-y">¿Y</span>
+        <span class="saludo-la">la</span>
+        <span class="saludo-plata">plata?</span>
+      </h1>
+      <div class="tope-acciones">
+        <button id="cortes" class="icono" type="button" aria-label="Configuración">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/>
+          </svg>
+        </button>
+        <button id="tema" type="button" aria-label="Cambiar tema">◐</button>
+        <button id="salir" type="button">Salir</button>
+      </div>
+    </header>
+
+    <div id="reintentos" class="reintentos" aria-live="polite"></div>
+
+    <section id="pantalla-inicio">
+      <div class="mes-nav">
+        <button id="mes-antes" type="button" aria-label="Corte anterior">‹</button>
+        <h2 id="mes-etiqueta">—</h2>
+        <button id="mes-despues" type="button" aria-label="Corte siguiente">›</button>
+      </div>
+      <div id="cifras-mes" class="cifras"></div>
+      <article id="corte-actual" class="corte"></article>
+    </section>
+
+    <section id="pantalla-basicos" class="oculto">
+      <p id="corte-basicos" class="meta"></p>
+      <h2 class="seccion">Por cubrir</h2>
+      <div id="por-cubrir" class="lista"></div>
+    </section>
+
+    <section id="pantalla-lista" class="oculto">
+      <button id="abrir-filtros" class="boton boton-secundario" type="button">Filtros</button>
+      <p id="resumen-filtros" class="meta"></p>
+      <div id="lista" class="lista"></div>
+    </section>
+
+    <section id="pantalla-recurrentes" class="oculto">
+      <div class="generar">
+        <p class="meta">Corte a generar</p>
+        <div class="mes-nav">
+          <button id="generar-antes" type="button" aria-label="Corte anterior">‹</button>
+          <h2 id="corte-generar">—</h2>
+          <button id="generar-despues" type="button" aria-label="Corte siguiente">›</button>
+        </div>
+        <button id="generar" class="boton" type="button">Generar movimientos</button>
+        <p class="ayuda">Crea los gastos de ese corte a partir de las plantillas. No cambia la plantilla.</p>
+      </div>
+      <div id="lista-recurrentes" class="lista"></div>
+    </section>
+
+    <button id="nuevo" class="fab" type="button" aria-label="Nuevo">+</button>
+    <nav class="tabs">
+      <button type="button" data-pantalla="inicio" class="activa">Inicio</button>
+      <button type="button" data-pantalla="basicos">Gastos básicos</button>
+      <button type="button" data-pantalla="lista">Movimientos</button>
+      <button type="button" data-pantalla="recurrentes">Plantillas</button>
+    </nav>
+  </div>
+
+  <div id="panel" class="panel oculto">
+    <div class="panel-barra">
+      <button id="cerrar-panel" type="button">Cerrar</button>
+    </div>
+    <div id="panel-cuerpo"></div>
+  </div>
+  <p id="aviso" class="aviso oculto" role="status"></p>
+
+  <!-- Orden de los scripts. No cambiarlo. -->
+  <script src="js/config.js"></script>
+  <script src="js/corte.js"></script>
+  <script src="js/dinero.js"></script>
+  <script src="js/formato.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/movimientos.js"></script>
+  <script src="js/formulario.js"></script>
+  <script src="js/recurrentes.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
