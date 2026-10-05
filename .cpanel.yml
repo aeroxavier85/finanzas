@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/gofeevoc/public_html/finanzas
+    - /bin/cp -R application $DEPLOYPATH
+    - /bin/cp -R assets $DEPLOYPATH
+    - /bin/cp -R system $DEPLOYPATH
+    - /bin/cp index.php $DEPLOYPATH
+    # - /bin/cp -R * $DEPLOYPATH
