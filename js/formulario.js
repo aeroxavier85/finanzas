@@ -179,12 +179,18 @@ function abrirMovimiento(m) {
   caja.appendChild(guardar);
   caja.addEventListener('submit', function (ev) {
     ev.preventDefault();
+    var plan = Dinero.numero(monto.value);
+    var real = Dinero.numero(montoReal.value);
+    if (plan === null || plan < 0) {
+      aviso('Escribe el monto. Sirve con coma o con punto.');
+      return;
+    }
     var payload = {
       tipo: tipo.value,
       concepto: concepto.value,
       categoria: (tipo.value === 'Gasto' && ahorroCat.value) ? ahorroCat.value : categoria.value,
-      monto: monto.value,
-      montoReal: montoReal.value,
+      monto: Dinero.redondear(plan),
+      montoReal: real === null ? '' : Dinero.redondear(real),
       fecha: fecha.value,
       estado: estado.value,
       pagadoDesde: tipo.value === 'Gasto' ? origen.value : '',
@@ -254,11 +260,18 @@ function inputTexto(valor, placeholder) {
 
 function inputNumero(valor) {
   var input = document.createElement('input');
-  input.type = 'number';
+  input.type = 'text';
   input.inputMode = 'decimal';
-  input.step = '0.01';
-  input.min = '0';
-  input.placeholder = '0.00';
+  input.autocomplete = 'off';
+  input.placeholder = '0,00';
+  input.enterKeyHint = 'done';
   if (valor !== '' && valor !== null && valor !== undefined) input.value = valor;
+  input.addEventListener('input', function () {
+    var limpio = input.value.replace(/[^\d.,]/g, '');
+    if (limpio === input.value) return;
+    var pos = input.selectionStart;
+    input.value = limpio;
+    if (pos !== null) input.setSelectionRange(pos, pos);
+  });
   return input;
 }

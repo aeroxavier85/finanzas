@@ -7,10 +7,13 @@ var Dinero = (function () {
     if (v === null || v === undefined || v === '') return null;
     if (typeof v === 'number') return isFinite(v) ? v : null;
     var s = String(v).replace(/\$/g, '').replace(/\s/g, '');
-    if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) {
-      s = s.replace(/,/g, '');
-    } else {
-      s = s.replace(',', '.');
+    var ultimaComa = s.lastIndexOf(',');
+    var ultimoPunto = s.lastIndexOf('.');
+    if (ultimaComa >= 0 && ultimoPunto >= 0) {
+      if (ultimaComa > ultimoPunto) s = s.replace(/\./g, '').replace(/,/g, '.');
+      else s = s.replace(/,/g, '');
+    } else if (ultimaComa >= 0) {
+      s = s.replace(/,/g, '.');
     }
     var n = parseFloat(s);
     return isFinite(n) ? n : null;

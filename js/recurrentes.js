@@ -144,11 +144,16 @@ function abrirRecurrente(item) {
 
   caja.addEventListener('submit', function (ev) {
     ev.preventDefault();
+    var habitual = Dinero.numero(monto.value);
+    if (habitual === null || habitual < 0) {
+      aviso('Escribe el monto. Sirve con coma o con punto.');
+      return;
+    }
     var payload = {
       tipo: tipo.value,
       concepto: concepto.value,
       categoria: categoria.value,
-      monto: monto.value,
+      monto: Dinero.redondear(habitual),
       dia: dia.value,
       activo: activo.value,
       notas: notas.value

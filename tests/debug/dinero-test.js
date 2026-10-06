@@ -26,6 +26,9 @@ casi(pagadoSinReal.gastosPagados, 35, 'si no hay monto real, usa el planificado'
 
 casi(corte.gastosPlanificados, 1850, 'omitido no suma');
 casi(Dinero.numero('$1,250.50'), 1250.5, 'lee montos con símbolo');
+casi(Dinero.numero('12,50'), 12.5, 'la coma es decimal');
+casi(Dinero.numero('12.50'), 12.5, 'el punto es decimal');
+casi(Dinero.numero('1.250,50'), 1250.5, 'punto de miles y coma decimal');
 casi(Dinero.numero(''), null, 'vacío no es cero');
 
 var mes = Dinero.resumir([
