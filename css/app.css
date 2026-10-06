@@ -304,7 +304,7 @@ button { cursor: pointer; }
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   background: var(--papel);
@@ -318,7 +318,7 @@ button { cursor: pointer; }
   border-radius: 12px;
   color: var(--suave);
   font-weight: 600;
-  font-size: 0.78rem;
+  font-size: 0.68rem;
   line-height: 1.15;
   padding: 6px 2px;
   transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -358,6 +358,27 @@ input, select {
 .corte-preview, .diferencia { margin: 8px 0 0; font-weight: 600; }
 .error { color: var(--peligro); min-height: 1.2em; }
 .vacio { color: var(--suave); margin: 8px 0; }
+
+.mesada-config { margin: 8px 0 4px; }
+.mesada-config-fila { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.mesada-config-fila .nombre { flex: 1; min-width: 0; }
+.mesada-config-fila .precio { width: 84px; flex: 0 0 84px; }
+.mesada-config-fila .boton { width: auto; flex: 0 0 auto; margin-top: 0; padding: 0 10px; }
+.mesada-columnas { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; }
+.mesada-nina { background: var(--papel); border-radius: var(--radio); box-shadow: var(--sombra); padding: 10px; margin: 0; min-width: 0; }
+.mesada-nina h3 { margin: 0; font-size: 1rem; }
+.mesada-identidad { display: flex; align-items: center; gap: 8px; }
+.mesada-cara { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex: 0 0 48px; background: var(--fondo); }
+.mesada-total { display: block; font-size: 1.35rem; margin: 2px 0 0; }
+.mesada-nina select { margin-top: 8px; }
+.mesada-nina .boton { margin-top: 8px; width: 100%; }
+.mesada-lista-titulo { margin: 14px 0 0; font-size: 0.75rem; }
+.mesada-linea { display: flex; justify-content: space-between; align-items: center; gap: 4px; padding: 8px 0; border-top: 1px solid var(--linea); }
+.mesada-linea-texto { display: flex; flex-direction: column; min-width: 0; }
+.mesada-linea-texto span { color: var(--suave); font-size: 0.72rem; }
+.mesada-linea-texto strong { font-size: 0.8rem; }
+.mesada-linea-lado { display: flex; align-items: center; gap: 2px; font-size: 0.78rem; }
+.mesada-quitar { border: 0; background: transparent; color: var(--peligro); font-size: 1.3rem; line-height: 1; width: 32px; min-height: 36px; padding: 0; }
 
 .panel {
   position: fixed;

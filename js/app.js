@@ -210,6 +210,8 @@ function arrancar() {
   document.getElementById('generar-antes').addEventListener('click', function () { moverGenerar(-1); });
   document.getElementById('generar-despues').addEventListener('click', function () { moverGenerar(1); });
   document.getElementById('generar').addEventListener('click', generarCorte);
+  document.getElementById('mesada-antes').addEventListener('click', function () { moverMesada(-1); });
+  document.getElementById('mesada-despues').addEventListener('click', function () { moverMesada(1); });
   document.getElementById('nuevo').addEventListener('click', pulsarNuevo);
   document.getElementById('cerrar-panel').addEventListener('click', cerrarPanel);
   document.querySelectorAll('.tabs button').forEach(function (boton) {
@@ -283,6 +285,7 @@ function aplicarDiasDeConfig(config) {
   var general = (config && config.general) || {};
   Corte.fijarDias(general.corteDia1 || 10, general.corteDia2 || 25);
   if (config && config.ahorros && config.ahorros.length) fijarAhorros(config.ahorros);
+  if (config && config.actividades && config.actividades.length) Mesada.usar(config.actividades);
 }
 
 function cuentasAhorro() {
@@ -338,6 +341,59 @@ function guardarCuentaAhorro(cuenta) {
     var lista = actual.filter(function (item) { return item.id !== id; });
     lista.push(siguiente);
     fijarAhorros(lista);
+    r.local = true;
+    r.error = 'Quedó en este teléfono. Falta actualizar el programa de la hoja de Google para verlo en el otro.';
+    return r;
+  });
+}
+
+function actividadesMesada() {
+  var lista = (Datos.config && Datos.config.actividades) || [];
+  if (!lista.length) {
+    try {
+      var local = JSON.parse(localStorage.getItem('finanzas-mesada-actividades') || '[]');
+      if (Array.isArray(local) && local.length) lista = local;
+    } catch (e) {}
+  }
+  if (lista.length) Mesada.usar(lista);
+  return Mesada.actividades.slice();
+}
+
+function fijarActividades(lista) {
+  if (!Datos.config) Datos.config = {};
+  Datos.config.actividades = Mesada.usar(lista);
+  try { localStorage.setItem('finanzas-mesada-actividades', JSON.stringify(Datos.config.actividades)); } catch (e) {}
+}
+
+function idActividad(nombre) {
+  var s = Dinero.norm(nombre);
+  s = s.replace(/[áà]/g, 'a').replace(/[éè]/g, 'e').replace(/[íì]/g, 'i');
+  s = s.replace(/[óò]/g, 'o').replace(/[úù]/g, 'u').replace(/ñ/g, 'n');
+  s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return s || ('act-' + Date.now());
+}
+
+function guardarActividad(datos) {
+  var nombre = String(datos.nombre || '').trim();
+  var valor = Dinero.numero(datos.valor);
+  if (!nombre) return Promise.resolve({ ok: false, error: 'Escribe qué pueden hacer' });
+  if (valor === null || valor < 0) return Promise.resolve({ ok: false, error: 'Escribe el precio. Sirve con coma o con punto.' });
+  var id = datos.id || idActividad(nombre);
+  var actual = actividadesMesada();
+  var repetida = actual.some(function (item) {
+    return Dinero.norm(item.nombre) === Dinero.norm(nombre) && item.id !== id;
+  });
+  if (repetida) return Promise.resolve({ ok: false, error: 'Esa actividad ya está' });
+  var siguiente = { id: id, nombre: nombre, valor: Dinero.redondear(valor) };
+  return Api.guardarActividad(siguiente).then(function (r) {
+    if (r.ok && r.actividades) {
+      fijarActividades(r.actividades);
+      return r;
+    }
+    if ((r.error || '').indexOf('desconocida') === -1) return r;
+    var lista = actual.filter(function (item) { return item.id !== id; });
+    lista.push(siguiente);
+    fijarActividades(lista);
     r.local = true;
     r.error = 'Quedó en este teléfono. Falta actualizar el programa de la hoja de Google para verlo en el otro.';
     return r;
@@ -416,6 +472,70 @@ function abrirCortes() {
   caja.appendChild(Formato.campo('Nuevo ahorro', nombreAhorro));
   caja.appendChild(agregar);
   caja.appendChild(errorAhorro);
+  caja.appendChild(Formato.nodo('h2', '', 'Mesada'));
+  caja.appendChild(Formato.nodo('p', 'ayuda', 'Estas salen en la pestaña Mesada. Si cambias el precio, lo nuevo vale para las próximas. Lo ya marcado se queda con el precio de ese día.'));
+  var listaActividades = Formato.nodo('div', 'mesada-config');
+  var errorActividad = Formato.nodo('p', 'error', '');
+  function pintarActividades() {
+    Formato.vaciar(listaActividades);
+    actividadesMesada().forEach(function (actividad) {
+      var fila = Formato.nodo('div', 'mesada-config-fila');
+      var nombre = document.createElement('input');
+      nombre.type = 'text';
+      nombre.className = 'nombre';
+      nombre.value = actividad.nombre;
+      var precio = document.createElement('input');
+      precio.type = 'text';
+      precio.className = 'precio';
+      precio.inputMode = 'decimal';
+      precio.value = String(actividad.valor).replace('.', ',');
+      var actualizar = Formato.nodo('button', 'boton boton-secundario', 'Actualizar');
+      actualizar.type = 'button';
+      actualizar.addEventListener('click', function () {
+        errorActividad.textContent = '';
+        guardarActividad({ id: actividad.id, nombre: nombre.value, valor: precio.value }).then(function (r) {
+          if (r && r.error) errorActividad.textContent = r.error;
+          pintarActividades();
+          if (Datos.pantalla === 'mesada') pintarMesada();
+        });
+      });
+      fila.appendChild(nombre);
+      fila.appendChild(precio);
+      fila.appendChild(actualizar);
+      listaActividades.appendChild(fila);
+    });
+  }
+  pintarActividades();
+  var nombreNueva = document.createElement('input');
+  nombreNueva.type = 'text';
+  nombreNueva.className = 'nombre';
+  nombreNueva.placeholder = 'Barrer, tender la cama';
+  var precioNuevo = document.createElement('input');
+  precioNuevo.type = 'text';
+  precioNuevo.className = 'precio';
+  precioNuevo.inputMode = 'decimal';
+  precioNuevo.placeholder = '1,50';
+  var agregarActividad = Formato.nodo('button', 'boton boton-secundario', 'Agregar');
+  agregarActividad.type = 'button';
+  agregarActividad.addEventListener('click', function () {
+    errorActividad.textContent = '';
+    guardarActividad({ nombre: nombreNueva.value, valor: precioNuevo.value }).then(function (r) {
+      if (r && (r.ok || r.local)) {
+        nombreNueva.value = '';
+        precioNuevo.value = '';
+      }
+      if (r && r.error) errorActividad.textContent = r.error;
+      pintarActividades();
+      if (Datos.pantalla === 'mesada') pintarMesada();
+    });
+  });
+  var filaNueva = Formato.nodo('div', 'mesada-config-fila');
+  filaNueva.appendChild(nombreNueva);
+  filaNueva.appendChild(precioNuevo);
+  filaNueva.appendChild(agregarActividad);
+  caja.appendChild(listaActividades);
+  caja.appendChild(filaNueva);
+  caja.appendChild(errorActividad);
   var guardar = Formato.nodo('button', 'boton', 'Guardar');
   guardar.type = 'submit';
   caja.appendChild(guardar);
@@ -477,15 +597,17 @@ function mostrarLogin() {
 
 function mostrarPantalla(nombre) {
   Datos.pantalla = nombre;
-  ['inicio', 'basicos', 'lista', 'recurrentes'].forEach(function (id) {
+  ['inicio', 'basicos', 'lista', 'recurrentes', 'mesada'].forEach(function (id) {
     document.getElementById('pantalla-' + id).classList.toggle('oculto', id !== nombre);
   });
   document.querySelectorAll('.tabs button').forEach(function (boton) {
     boton.classList.toggle('activa', boton.getAttribute('data-pantalla') === nombre);
   });
+  document.getElementById('nuevo').classList.toggle('oculto', nombre === 'mesada');
   if (nombre === 'inicio') cargarInicio();
   if (nombre === 'lista') cargarLista();
   if (nombre === 'recurrentes') cargarRecurrentes();
+  if (nombre === 'mesada') cargarMesada();
 }
 
 function cambiarCorte(delta) {

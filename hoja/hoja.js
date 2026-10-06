@@ -69,6 +69,10 @@ function ejecutar(accion, datos) {
   if (accion === 'config') return { ok: true, config: leerConfig() };
   if (accion === 'config-cortes') return conLock(function () { return accionGuardarCortes(datos); });
   if (accion === 'config-ahorro') return conLock(function () { return accionGuardarAhorro(datos); });
+  if (accion === 'config-actividad') return conLock(function () { return accionGuardarActividad(datos); });
+  if (accion === 'mesada') return { ok: true, items: leerItemsMesada() };
+  if (accion === 'mesada-agregar') return conLock(function () { return accionAgregarMesada(datos); });
+  if (accion === 'mesada-quitar') return conLock(function () { return accionQuitarMesada(datos); });
   return { ok: false, error: 'Acción desconocida' };
 }
 
@@ -608,6 +612,7 @@ function leerConfig() {
   var cortes = [];
   var general = {};
   var ahorros = [];
+  var actividades = [];
   var tabla = leerTabla('Configuracion');
   asegurarCategoria(tabla, 'Gasto', 'Diezmos y ofrendas');
   tabla.filas.forEach(function (fila) {
@@ -635,6 +640,15 @@ function leerConfig() {
         nombre: nombreAhorro,
         inicio: esSi(fila['Extra'])
       });
+    } else if (grupo === 'mesada') {
+      var nombreActividad = textoCelda(fila['Valor']);
+      var precio = Dinero.numero(fila['Extra']);
+      if (!nombreActividad || precio === null || precio < 0) return;
+      actividades.push({
+        id: textoCelda(fila['Clave']) || idActividad(nombreActividad),
+        nombre: nombreActividad,
+        valor: Dinero.redondear(precio)
+      });
     }
   });
   if (!ahorros.length) {
@@ -645,13 +659,26 @@ function leerConfig() {
       { id: 'fabi', nombre: 'Fabi', inicio: false }
     ];
   }
+  if (!actividades.length) {
+    var base = [
+      { id: 'bano', nombre: 'Lavar el baño', valor: 5 },
+      { id: 'platos', nombre: 'Lavar platos', valor: 2.5 },
+      { id: 'ropa', nombre: 'Lavar y secar', valor: 3 },
+      { id: 'doblar', nombre: 'Doblar y guardar', valor: 5 }
+    ];
+    base.forEach(function (actividad) {
+      ponerActividad(tabla, actividad.id, actividad.nombre, actividad.valor);
+    });
+    actividades = base;
+  }
   return {
     categorias: categorias,
     personas: personas,
     estados: estados,
     cortes: cortes,
     general: general,
-    ahorros: ahorros
+    ahorros: ahorros,
+    actividades: actividades
   };
 }
 
@@ -759,4 +786,150 @@ function accionGuardarCortes(datos) {
   ponerGeneral(tabla, 'corteDia2', Math.max(a, b));
   Corte.fijarDias(a, b);
   return { ok: true, dias: Corte.diasActuales(), config: leerConfig() };
+}
+
+function idActividad(nombre) {
+  var s = Dinero.norm(nombre);
+  s = s.replace(/[áà]/g, 'a').replace(/[éè]/g, 'e').replace(/[íì]/g, 'i');
+  s = s.replace(/[óò]/g, 'o').replace(/[úù]/g, 'u').replace(/ñ/g, 'n');
+  s = s.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return s || ('act-' + new Date().getTime());
+}
+
+function ponerActividad(tabla, id, nombre, valor) {
+  var extra = String(Dinero.redondear(valor));
+  var i;
+  for (i = 0; i < tabla.filas.length; i++) {
+    var fila = tabla.filas[i];
+    if (Dinero.norm(fila['Grupo']) !== 'mesada') continue;
+    if (textoCelda(fila['Clave']) !== id) continue;
+    var colValor = indiceColumna(tabla, 'Valor');
+    var colExtra = indiceColumna(tabla, 'Extra');
+    var colActivo = indiceColumna(tabla, 'Activo');
+    var celdaValor = tabla.sheet.getRange(fila._fila, colValor);
+    celdaValor.setNumberFormat('@');
+    celdaValor.setValue(nombre);
+    if (colExtra) {
+      var celdaExtra = tabla.sheet.getRange(fila._fila, colExtra);
+      celdaExtra.setNumberFormat('@');
+      celdaExtra.setValue(extra);
+    }
+    if (colActivo) tabla.sheet.getRange(fila._fila, colActivo).setValue('Sí');
+    fila['Valor'] = nombre;
+    fila['Extra'] = extra;
+    fila['Activo'] = 'Sí';
+    return;
+  }
+  var mapa = { Grupo: 'mesada', Clave: id, Valor: nombre, Extra: extra, Activo: 'Sí' };
+  var n = Math.max(tabla.sheet.getLastRow(), 1) + 1;
+  tabla.headers.forEach(function (header, idx) {
+    if (mapa[header] === undefined) return;
+    var celdaNueva = tabla.sheet.getRange(n, idx + 1);
+    if (header === 'Valor' || header === 'Clave' || header === 'Extra') celdaNueva.setNumberFormat('@');
+    celdaNueva.setValue(mapa[header]);
+  });
+  var nueva = { _fila: n };
+  tabla.headers.forEach(function (header) {
+    nueva[header] = mapa[header] || '';
+  });
+  tabla.filas.push(nueva);
+}
+
+function accionGuardarActividad(datos) {
+  var nombre = String((datos && datos.nombre) || '').trim();
+  var valor = Dinero.numero(datos && datos.valor);
+  if (!nombre) return { ok: false, error: 'Escribe qué pueden hacer' };
+  if (valor === null || valor < 0) return { ok: false, error: 'Escribe el precio' };
+  var id = String((datos && datos.id) || '').trim();
+  if (!id) id = idActividad(nombre);
+  var tabla = leerTabla('Configuracion');
+  var repetida = false;
+  tabla.filas.forEach(function (fila) {
+    if (Dinero.norm(fila['Grupo']) !== 'mesada') return;
+    if (!estaActivo(fila['Activo'])) return;
+    if (textoCelda(fila['Clave']) === id) return;
+    if (Dinero.norm(fila['Valor']) === Dinero.norm(nombre)) repetida = true;
+  });
+  if (repetida) return { ok: false, error: 'Esa actividad ya está' };
+  ponerActividad(tabla, id, nombre, valor);
+  return { ok: true, actividades: leerConfig().actividades };
+}
+
+function asegurarHojaMesada() {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName('Mesada');
+  if (!sh) sh = ss.insertSheet('Mesada');
+  if (String(sh.getRange(1, 1).getValue() || '') === 'Clave') sh.clear();
+  if (String(sh.getRange(1, 1).getValue() || '') !== 'ID') {
+    sh.getRange(1, 1, 1, 5).setValues([['ID', 'Nina', 'Actividad', 'Valor', 'Fecha']]);
+    sh.getRange(1, 1, 1, 5).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function valorMesada(id) {
+  var mapa = {};
+  (leerConfig().actividades || []).forEach(function (actividad) {
+    mapa[actividad.id] = actividad.valor;
+  });
+  return mapa[id] === undefined ? null : mapa[id];
+}
+
+function leerItemsMesada() {
+  var sh = asegurarHojaMesada();
+  var ultima = sh.getLastRow();
+  if (ultima < 2) return [];
+  var valores = sh.getRange(2, 1, ultima - 1, 5).getValues();
+  var items = [];
+  valores.forEach(function (fila) {
+    var id = textoCelda(fila[0]);
+    var nina = Dinero.norm(fila[1]);
+    var actividad = textoCelda(fila[2]);
+    if (!id || (nina !== 'mia' && nina !== 'fabiana')) return;
+    var guardado = Dinero.numero(fila[3]);
+    var valor = guardado === null ? valorMesada(actividad) : guardado;
+    if (valor === null || valor < 0) return;
+    var fecha = textoCelda(fila[4]);
+    items.push({
+      id: id,
+      nina: nina,
+      actividad: actividad,
+      valor: Dinero.redondear(valor),
+      fecha: fecha
+    });
+  });
+  return items;
+}
+
+function accionAgregarMesada(datos) {
+  var nina = Dinero.norm(datos && datos.nina);
+  var actividad = String((datos && datos.actividad) || '').trim();
+  var valor = valorMesada(actividad);
+  if (nina !== 'mia' && nina !== 'fabiana') return { ok: false, error: 'Elige a Mia o a Fabiana' };
+  if (valor === null) return { ok: false, error: 'Elige una actividad' };
+  var fecha = String((datos && datos.fecha) || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) fecha = hoyISO();
+  var sh = asegurarHojaMesada();
+  var id = nuevoId('MES');
+  var fila = Math.max(sh.getLastRow(), 1) + 1;
+  sh.getRange(fila, 1, 1, 5).setValues([[id, nina, actividad, valor, fecha]]);
+  return { ok: true, item: { id: id, nina: nina, actividad: actividad, valor: valor, fecha: fecha } };
+}
+
+function accionQuitarMesada(datos) {
+  var id = String((datos && datos.id) || '').trim();
+  if (!id) return { ok: false, error: 'No está esa marca' };
+  if (id.indexOf('local-') === 0) return { ok: true };
+  var sh = asegurarHojaMesada();
+  var ultima = sh.getLastRow();
+  if (ultima < 2) return { ok: true };
+  var valores = sh.getRange(2, 1, ultima - 1, 1).getValues();
+  for (var i = 0; i < valores.length; i++) {
+    if (textoCelda(valores[i][0]) === id) {
+      sh.deleteRow(i + 2);
+      return { ok: true };
+    }
+  }
+  return { ok: true };
 }

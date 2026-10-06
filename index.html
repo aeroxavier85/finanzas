@@ -84,6 +84,17 @@
       <div id="lista" class="lista"></div>
     </section>
 
+    <section id="pantalla-mesada" class="oculto">
+      <div class="mes-nav">
+        <button id="mesada-antes" type="button" aria-label="Mes anterior">‹</button>
+        <h2 id="mesada-etiqueta">—</h2>
+        <button id="mesada-despues" type="button" aria-label="Mes siguiente">›</button>
+      </div>
+      <p class="ayuda">Elige la actividad y márcala hecha. Arriba queda lo que lleva en el mes.</p>
+      <p id="mesada-aviso" class="ayuda oculto"></p>
+      <div id="mesada-cuerpo"></div>
+    </section>
+
     <section id="pantalla-recurrentes" class="oculto">
       <div class="generar">
         <p class="meta">Corte a generar</p>
@@ -104,6 +115,7 @@
       <button type="button" data-pantalla="basicos">Gastos básicos</button>
       <button type="button" data-pantalla="lista">Movimientos</button>
       <button type="button" data-pantalla="recurrentes">Plantillas</button>
+      <button type="button" data-pantalla="mesada">Mesada</button>
     </nav>
   </div>
 
@@ -125,6 +137,7 @@
   <script src="js/movimientos.js"></script>
   <script src="js/formulario.js"></script>
   <script src="js/recurrentes.js"></script>
+  <script src="js/mesada.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

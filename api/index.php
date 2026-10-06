@@ -55,6 +55,10 @@ $rutas = [
     'config' => 'hoja',
     'config-cortes' => 'hoja',
     'config-ahorro' => 'hoja',
+    'config-actividad' => 'hoja',
+    'mesada' => 'hoja',
+    'mesada-agregar' => 'hoja',
+    'mesada-quitar' => 'hoja',
 ];
 
 if (!isset($rutas[$ruta])) {

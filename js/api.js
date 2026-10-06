@@ -44,6 +44,10 @@ var Api = (function () {
     generar: function (datos) { return pedir('generar', datos); },
     config: function () { return pedir('config'); },
     guardarCortes: function (datos) { return pedir('config-cortes', datos); },
-    guardarAhorro: function (datos) { return pedir('config-ahorro', datos); }
+    guardarAhorro: function (datos) { return pedir('config-ahorro', datos); },
+    guardarActividad: function (datos) { return pedir('config-actividad', datos); },
+    mesada: function () { return pedir('mesada'); },
+    agregarMesada: function (datos) { return pedir('mesada-agregar', datos); },
+    quitarMesada: function (datos) { return pedir('mesada-quitar', datos); }
   };
 })();

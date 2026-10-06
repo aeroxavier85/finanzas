@@ -1,4 +1,4 @@
-var CACHE = 'finanzas-v35';
+var CACHE = 'finanzas-v40';
 var ARCHIVOS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ var ARCHIVOS = [
   './js/movimientos.js',
   './js/formulario.js',
   './js/recurrentes.js',
+  './js/mesada.js',
   './js/app.js',
   './manifest.webmanifest',
   './icon-180.png',
@@ -19,7 +20,9 @@ var ARCHIVOS = [
   './icon-512.png',
   './img/billete-vuela.png',
   './img/billetes-caen.png',
-  './img/esposa-ahorca.png'
+  './img/esposa-ahorca.png',
+  './img/fabiana.jpg',
+  './img/mia.jpg'
 ];
 
 self.addEventListener('install', function (event) {
