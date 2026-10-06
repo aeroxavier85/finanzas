@@ -2,8 +2,15 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/gofeevoc/public_html/finanzas
-    - /bin/cp -R application $DEPLOYPATH
-    - /bin/cp -R assets $DEPLOYPATH
-    - /bin/cp -R system $DEPLOYPATH
-    - /bin/cp index.php $DEPLOYPATH
-    # - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp -R api $DEPLOYPATH
+    - /bin/cp -R css $DEPLOYPATH
+    - /bin/cp -R hoja $DEPLOYPATH
+    - /bin/cp -R img $DEPLOYPATH
+    - /bin/cp -R js $DEPLOYPATH
+    - /bin/cp icon-180.png $DEPLOYPATH
+    - /bin/cp icon-192.png $DEPLOYPATH
+    - /bin/cp icon-512.png $DEPLOYPATH
+    - /bin/cp index.html $DEPLOYPATH
+    - /bin/cp manifest.webmanifest $DEPLOYPATH
+    - /bin/cp sw.js $DEPLOYPATH
+    - /bin/cp .htaccess $DEPLOYPATH
