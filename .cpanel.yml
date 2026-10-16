@@ -14,3 +14,5 @@ deployment:
     - /bin/cp manifest.webmanifest $DEPLOYPATH
     - /bin/cp sw.js $DEPLOYPATH
     - /bin/cp .htaccess $DEPLOYPATH
+    - /bin/mkdir -p /home/gofeevoc/public_html/.well-known
+    - /bin/cp -R well-known/. /home/gofeevoc/public_html/.well-known/

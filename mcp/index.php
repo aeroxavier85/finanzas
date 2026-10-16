@@ -1,18 +1,17 @@
 <?php
 // Conector de Claude (MCP). Se registra en claude.ai con la URL:
-// https://TU-DOMINIO/finanzas/mcp/index.php?clave=CODIGO
-// El código es el mismo de la app. Después de 5 códigos malos se bloquea 24 horas.
+// https://TU-DOMINIO/finanzas/mcp/index.php
+// Claude pide el código con OAuth (oauth.php) y después usa un token.
+// También sirve ?clave=CODIGO en la URL, para clientes sin OAuth.
+// Después de 5 códigos malos se bloquea 24 horas.
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('Cache-Control: no-store');
 
-$config = require __DIR__ . '/../api/config.php';
-require_once __DIR__ . '/../api/datos.php';
+require __DIR__ . '/comun.php';
 
 const MCP_VERSIONES = ['2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05'];
-const MCP_MAX_FALLOS = 5;
-const MCP_BLOQUEO_SEGUNDOS = 86400;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -22,10 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    global $DATOS_CONFIG;
-    $DATOS_CONFIG = $config;
-    datosAsegurar($config);
-    mcpRevisarClave($config);
+    mcpPreparar($config);
+    mcpRevisarAcceso($config);
 } catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['error' => 'No se pudo abrir la base'], JSON_UNESCAPED_UNICODE);
@@ -52,49 +49,32 @@ if (!$respuestas) {
 }
 echo json_encode($esLote ? $respuestas : $respuestas[0], JSON_UNESCAPED_UNICODE);
 
-// ---------- Clave y bloqueo ----------
+// ---------- Acceso ----------
 
-function mcpRevisarClave($config)
+function mcpRevisarAcceso($config)
 {
-    global $DATOS_CONFIG;
-    $db = datosDb($DATOS_CONFIG);
-    $db->query('CREATE TABLE IF NOT EXISTS mcp_bloqueo (
-        id TINYINT NOT NULL PRIMARY KEY,
-        fallos INT NOT NULL DEFAULT 0,
-        bloqueado_hasta INT NOT NULL DEFAULT 0
-    ) ENGINE=InnoDB');
-    $db->query('INSERT IGNORE INTO mcp_bloqueo (id, fallos, bloqueado_hasta) VALUES (1, 0, 0)');
-    $fila = datosFilas($db, 'SELECT fallos, bloqueado_hasta FROM mcp_bloqueo WHERE id = 1')[0];
-
-    if ((int) $fila['bloqueado_hasta'] > time()) {
-        mcpNegar(429, 'Bloqueado por demasiados códigos incorrectos. Intenta más tarde.');
+    $token = mcpLeerBearer();
+    if ($token !== '') {
+        if (oauthTokenValido($token)) return;
+        mcpNegar(401, 'El acceso venció. Conecta de nuevo.', 'invalid_token');
     }
 
     $clave = isset($_GET['clave']) ? trim((string) $_GET['clave']) : '';
-    if ($clave === '') {
-        $auth = isset($_SERVER['HTTP_AUTHORIZATION']) ? (string) $_SERVER['HTTP_AUTHORIZATION'] : '';
-        if (preg_match('/^Bearer\s+(\S+)$/i', $auth, $m)) $clave = $m[1];
-    }
-    if ($clave === '') mcpNegar(401, 'Falta el código');
+    if ($clave === '') mcpNegar(401, 'Falta conectar');
 
-    $esperada = isset($config['clave']) ? (string) $config['clave'] : '';
-    if (preg_match('/^\d{4}$/', $esperada) && hash_equals($esperada, $clave)) {
-        if ((int) $fila['fallos'] > 0) $db->query('UPDATE mcp_bloqueo SET fallos = 0 WHERE id = 1');
-        return;
-    }
-
-    $fallos = (int) $fila['fallos'] + 1;
-    if ($fallos >= MCP_MAX_FALLOS) {
-        datosExec($db, 'UPDATE mcp_bloqueo SET fallos = 0, bloqueado_hasta = ? WHERE id = 1', [time() + MCP_BLOQUEO_SEGUNDOS]);
-    } else {
-        datosExec($db, 'UPDATE mcp_bloqueo SET fallos = ? WHERE id = 1', [$fallos]);
-    }
+    $r = mcpProbarClave($config, $clave);
+    if ($r['estado'] === 'ok') return;
+    if ($r['estado'] === 'bloqueado') mcpNegar(429, 'Bloqueado por demasiados códigos incorrectos. Intenta más tarde.');
     mcpNegar(401, 'Código incorrecto');
 }
 
-function mcpNegar($estado, $texto)
+function mcpNegar($estado, $texto, $error = '')
 {
     http_response_code($estado);
+    if ($estado === 401) {
+        $extra = $error !== '' ? ', error="' . $error . '"' : '';
+        header('WWW-Authenticate: Bearer resource_metadata="' . mcpBase() . '/.well-known/oauth-protected-resource"' . $extra);
+    }
     echo json_encode(['error' => $texto], JSON_UNESCAPED_UNICODE);
     exit;
 }

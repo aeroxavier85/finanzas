@@ -1,2 +1,16 @@
 DirectoryIndex index.php
 CGIPassAuth On
+
+<Files "comun.php">
+  Require all denied
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  RewriteRule ^\.well-known/oauth-protected-resource oauth.php?que=recurso [L,QSA]
+  RewriteRule ^\.well-known/(oauth-authorization-server|openid-configuration) oauth.php?que=servidor [L,QSA]
+  RewriteRule ^autorizar$ oauth.php?que=autorizar [L,QSA]
+  RewriteRule ^token$ oauth.php?que=token [L,QSA]
+  RewriteRule ^registrar$ oauth.php?que=registrar [L,QSA]
+</IfModule>
