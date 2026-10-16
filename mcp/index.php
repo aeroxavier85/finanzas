@@ -176,13 +176,14 @@ function mcpHerramientas()
             'name' => 'agregar_movimiento',
             'title' => 'Agregar gasto o ingreso',
             'description' => 'Registra un gasto o un ingreso en la app. Si el usuario dice que ya lo gastó o lo recibió, el estado es Pagado/Recibido '
-                . '(es lo normal). Si es algo por pagar más adelante usa Pendiente. Elige la categoría más parecida de la lista; si ninguna encaja, déjala vacía. '
+                . '(es lo normal). Si es algo por pagar más adelante usa Pendiente. Elige la categoría más parecida de la lista; si ninguna encaja, usa Otros (gasto) u Otros ingresos (ingreso). '
+                . 'Si es Pagado o Recibido, el monto real se guarda igual al monto. '
                 . 'Confirma al usuario lo que quedó guardado.',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'tipo' => ['type' => 'string', 'enum' => ['Gasto', 'Ingreso']],
-                    'concepto' => ['type' => 'string', 'description' => 'Qué fue, corto. Ej. "Supermercado", "Gasolina".'],
+                    'concepto' => ['type' => 'string', 'description' => 'Qué fue, corto. Ej. "Supermercado", "Gasolina". Opcional: ponlo solo si se deduce bien de lo que dijo el usuario; si no, no lo mandes y queda "Otros".'],
                     'monto' => ['type' => 'number', 'description' => 'Monto en USD, positivo.'],
                     'categoria' => [
                         'type' => 'string',
@@ -197,7 +198,7 @@ function mcpHerramientas()
                     'persona' => ['type' => 'string', 'description' => 'Por defecto Familia.'],
                     'notas' => ['type' => 'string'],
                 ],
-                'required' => ['tipo', 'concepto', 'monto'],
+                'required' => ['tipo', 'monto'],
             ],
         ],
         [
@@ -356,6 +357,13 @@ function mcpModificar($args)
     foreach ($nombres as $de => $a) {
         if (array_key_exists($de, $args)) $datos[$a] = $args[$de];
     }
+    // Si cambia el monto y el monto real era el mismo, los dos siguen iguales.
+    if (array_key_exists('monto', $datos) && !array_key_exists('montoReal', $datos)) {
+        $actual = dBuscarMovimiento($datos['id']);
+        if ($actual && $actual['montoReal'] !== '' && dRedondear($actual['montoReal']) === dRedondear($actual['monto'])) {
+            $datos['montoReal'] = $datos['monto'];
+        }
+    }
     $r = datosActualizarMovimiento($datos);
     if (empty($r['ok'])) throw new RuntimeException($r['error']);
     return ['guardado' => mcpCorto($r['movimiento'])];
@@ -368,11 +376,18 @@ function mcpAgregar($args)
     if (dEstado($tipo, $estado) === '') $estado = $tipo === 'Ingreso' ? 'Recibido' : 'Pagado';
     $fecha = isset($args['fecha']) ? trim((string) $args['fecha']) : '';
     if ($fecha === '') $fecha = dHoy();
+    $concepto = isset($args['concepto']) ? trim((string) $args['concepto']) : '';
+    if ($concepto === '') $concepto = 'Otros';
+    $monto = isset($args['monto']) ? $args['monto'] : null;
+    $categoria = isset($args['categoria']) ? trim((string) $args['categoria']) : '';
+    if ($categoria === '') $categoria = $tipo === 'Ingreso' ? 'Otros ingresos' : 'Otros';
+    $hecho = in_array(dEstado($tipo, $estado), ['Pagado', 'Recibido'], true);
     $r = datosCrearMovimiento([
         'tipo' => $tipo,
-        'concepto' => isset($args['concepto']) ? $args['concepto'] : '',
-        'monto' => isset($args['monto']) ? $args['monto'] : null,
-        'categoria' => isset($args['categoria']) ? $args['categoria'] : '',
+        'concepto' => $concepto,
+        'monto' => $monto,
+        'montoReal' => $hecho ? $monto : '',
+        'categoria' => $categoria,
         'fecha' => $fecha,
         'estado' => $estado,
         'pagadoDesde' => isset($args['pagado_desde']) ? $args['pagado_desde'] : '',
@@ -392,6 +407,7 @@ function mcpCorto($m)
         'concepto' => $m['concepto'],
         'categoria' => $m['categoria'],
         'monto' => $m['monto'],
+        'montoReal' => $m['montoReal'],
         'estado' => $m['estado'],
         'corte' => $m['corte'],
     ];
