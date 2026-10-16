@@ -126,7 +126,11 @@ function mcpAtender($msg)
             'serverInfo' => ['name' => 'finanzas', 'title' => '¿Y la plata?', 'version' => '1.0.0'],
             'instructions' => 'Finanzas de la familia. Montos en USD. Los periodos se llaman "cortes" (no meses). '
                 . 'Para "¿cómo voy?" usa estado_corte. Para registrar usa agregar_movimiento. '
-                . 'Para marcar algo pagado, primero busca el id con pendientes.',
+                . 'Para marcar algo pagado, primero busca el id con pendientes. '
+                . 'Si preguntan "¿me puedo gastar X?", consulta estado_corte y compara X con disponibleEsperado '
+                . '(lo que queda después de pagar lo pendiente del corte), no con disponible. '
+                . 'Responde sí o no, cuánto quedaría después del gasto, y si es no, cuánto falta. '
+                . 'Los ahorros no cuentan como dinero disponible salvo que el usuario diga que lo sacará de un ahorro.',
         ]);
     }
     if ($metodo === 'ping') return mcpOk($id, new stdClass());
@@ -175,7 +179,9 @@ function mcpHerramientas()
             'name' => 'estado_corte',
             'title' => 'Estado del corte',
             'description' => 'Muestra lo mismo que la pantalla de Inicio: ingresos + sobrante del corte anterior, planificado, pagado, '
-                . 'disponible, saldos de ahorro y cuánto falta por pagar. Úsala para "¿cómo voy?", "¿cuánto me queda?", "¿cuál es mi saldo?".',
+                . 'disponible, saldos de ahorro y cuánto falta por pagar. Úsala para "¿cómo voy?", "¿cuánto me queda?", "¿cuál es mi saldo?" '
+                . 'y "¿me puedo gastar X?". disponible = lo que hay hoy; disponibleEsperado = lo que queda después de pagar los pendientes del corte '
+                . '(usa este para decidir si alcanza para un gasto nuevo).',
             'inputSchema' => ['type' => 'object', 'properties' => ['fecha' => $fechaCorte]],
             'annotations' => ['readOnlyHint' => true],
         ],
