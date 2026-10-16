@@ -42,23 +42,23 @@ $rutas = [
     'login' => 'local',
     'logout' => 'local',
     'yo' => 'local',
-    'dashboard' => 'hoja',
-    'movimientos' => 'hoja',
-    'movimiento-crear' => 'hoja',
-    'movimiento-actualizar' => 'hoja',
-    'movimiento-eliminar' => 'hoja',
-    'movimiento-pagar' => 'hoja',
-    'recurrentes' => 'hoja',
-    'recurrente-guardar' => 'hoja',
-    'recurrente-eliminar' => 'hoja',
-    'generar' => 'hoja',
-    'config' => 'hoja',
-    'config-cortes' => 'hoja',
-    'config-ahorro' => 'hoja',
-    'config-actividad' => 'hoja',
-    'mesada' => 'hoja',
-    'mesada-agregar' => 'hoja',
-    'mesada-quitar' => 'hoja',
+    'dashboard' => 'datos',
+    'movimientos' => 'datos',
+    'movimiento-crear' => 'datos',
+    'movimiento-actualizar' => 'datos',
+    'movimiento-eliminar' => 'datos',
+    'movimiento-pagar' => 'datos',
+    'recurrentes' => 'datos',
+    'recurrente-guardar' => 'datos',
+    'recurrente-eliminar' => 'datos',
+    'generar' => 'datos',
+    'config' => 'datos',
+    'config-cortes' => 'datos',
+    'config-ahorro' => 'datos',
+    'config-actividad' => 'datos',
+    'mesada' => 'datos',
+    'mesada-agregar' => 'datos',
+    'mesada-quitar' => 'datos',
 ];
 
 if (!isset($rutas[$ruta])) {
@@ -106,70 +106,5 @@ if ($rutas[$ruta] === 'local') {
     exit;
 }
 
-echo json_encode(llamarHoja($ruta, $datos, $config), JSON_UNESCAPED_UNICODE);
-
-function llamarHoja($accion, $datos, $config)
-{
-    $url = isset($config['script_url']) ? trim((string) $config['script_url']) : '';
-    if ($url === '' || strpos($url, 'https://script.google.com/') !== 0) {
-        return [
-            'ok' => false,
-            'error' => 'Falta la dirección de la hoja en api/config.php. Se copia al publicar el programa de Google.',
-        ];
-    }
-    if (!function_exists('curl_init')) {
-        return ['ok' => false, 'error' => 'Este hosting no tiene cURL activado.'];
-    }
-
-    $payload = json_encode([
-        'clave' => (string) $config['clave'],
-        'accion' => $accion,
-        'datos' => $datos,
-    ], JSON_UNESCAPED_UNICODE);
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json; charset=utf-8']);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HEADER, true);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 40);
-    $crudo = curl_exec($ch);
-    $error = curl_error($ch);
-    $codigo = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $tamano = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-
-    if ($crudo === false || $crudo === '') {
-        return ['ok' => false, 'error' => $error !== '' ? $error : 'La hoja no respondió'];
-    }
-
-    $cabeceras = substr($crudo, 0, $tamano);
-    $respuesta = substr($crudo, $tamano);
-    if ($codigo >= 300 && $codigo < 400 && preg_match('/^location:\\s*(\\S+)/mi', $cabeceras, $coincide)) {
-        $destino = curl_init($coincide[1]);
-        curl_setopt($destino, CURLOPT_HTTPGET, true);
-        curl_setopt($destino, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($destino, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($destino, CURLOPT_TIMEOUT, 40);
-        $respuesta = curl_exec($destino);
-        $error = curl_error($destino);
-        $codigo = (int) curl_getinfo($destino, CURLINFO_HTTP_CODE);
-        if ($respuesta === false || $respuesta === '') {
-            return ['ok' => false, 'error' => $error !== '' ? $error : 'La hoja no respondió'];
-        }
-    }
-
-    $json = json_decode($respuesta, true);
-    if (!is_array($json)) {
-        return [
-            'ok' => false,
-            'error' => 'La hoja respondió algo que no se entiende. Revisa que el programa esté publicado como aplicación web.',
-        ];
-    }
-    if ($codigo >= 400 && empty($json['error'])) {
-        $json['ok'] = false;
-        $json['error'] = 'La hoja rechazó el pedido';
-    }
-    return $json;
-}
+require_once __DIR__ . '/datos.php';
+echo json_encode(datosAccion($ruta, $datos, $config), JSON_UNESCAPED_UNICODE);

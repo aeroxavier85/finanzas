@@ -62,11 +62,7 @@ function generarCorte() {
   Api.generar({ corte: corte.clave }).then(function (r) {
     boton.disabled = false;
     if (!r.ok) {
-      var msg = r.error || 'No se pudo generar';
-      if (msg.indexOf('Elige un mes') !== -1 || msg.indexOf('desconocida') !== -1) {
-        msg = 'No se generó. Falta actualizar el programa de la hoja de Google.';
-      }
-      aviso(msg);
+      aviso(r.error || 'No se pudo generar');
       return;
     }
     if (!r.creados) aviso('Ese corte ya estaba generado');

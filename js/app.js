@@ -342,7 +342,7 @@ function guardarCuentaAhorro(cuenta) {
     lista.push(siguiente);
     fijarAhorros(lista);
     r.local = true;
-    r.error = 'Quedó en este teléfono. Falta actualizar el programa de la hoja de Google para verlo en el otro.';
+    r.error = 'Quedó en este teléfono.';
     return r;
   });
 }
@@ -395,7 +395,7 @@ function guardarActividad(datos) {
     lista.push(siguiente);
     fijarActividades(lista);
     r.local = true;
-    r.error = 'Quedó en este teléfono. Falta actualizar el programa de la hoja de Google para verlo en el otro.';
+    r.error = 'Quedó en este teléfono.';
     return r;
   });
 }
@@ -557,11 +557,7 @@ function abrirCortes() {
     Api.guardarCortes({ dia1: a, dia2: b }).then(function (r) {
       guardar.disabled = false;
       if (!r.ok) {
-        var msg = r.error || 'No se guardó';
-        if (msg.indexOf('desconocida') !== -1) {
-          msg = 'No se guardó. Falta actualizar el programa de la hoja de Google.';
-        }
-        error.textContent = msg;
+        error.textContent = r.error || 'No se guardó';
         return;
       }
       var nuevos = r.dias || Corte.fijarDias(a, b);

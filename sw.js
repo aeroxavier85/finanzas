@@ -1,4 +1,4 @@
-var CACHE = 'finanzas-v40';
+var CACHE = 'finanzas-v41';
 var ARCHIVOS = [
   './',
   './index.html',

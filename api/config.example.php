@@ -1,7 +1,11 @@
 <?php
 // Copia este archivo como api/config.php.
-// El código tiene que ser el mismo que CLAVE_FAMILIA en la hoja de Google.
+// En el servidor de la página, db_host es localhost. La contraseña no se sube a GitHub.
 return [
     'clave' => '0000',
-    'script_url' => 'https://script.google.com/macros/s/TU_ENLACE/exec',
+    'db_host' => 'localhost',
+    'db_name' => 'NOMBRE_DE_LA_BASE',
+    'db_user' => 'USUARIO',
+    'db_pass' => 'CLAVE',
+    'db_port' => 3306,
 ];

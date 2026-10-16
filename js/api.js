@@ -3,7 +3,7 @@ var Api = (function () {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       return Promise.resolve({
         ok: false,
-        error: 'Sin conexión. Los números viven en la hoja, no en el teléfono.'
+        error: 'Sin conexión. No se pudieron leer los números.'
       });
     }
     return fetch(APP.api, {
@@ -22,7 +22,7 @@ var Api = (function () {
     }).catch(function () {
       return {
         ok: false,
-        error: 'Sin conexión. Los números viven en la hoja, no en el teléfono.'
+        error: 'Sin conexión. No se pudieron leer los números.'
       };
     });
   }

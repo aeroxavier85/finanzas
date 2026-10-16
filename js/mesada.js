@@ -127,7 +127,7 @@ function pintarMesada() {
   var aviso = document.getElementById('mesada-aviso');
   if (aviso) {
     aviso.textContent = mesadaSoloTelefono
-      ? 'Las marcas quedan en este teléfono hasta actualizar el programa de la hoja de Google.'
+      ? 'Las marcas quedaron solo en este teléfono.'
       : '';
     aviso.classList.toggle('oculto', !mesadaSoloTelefono);
   }
