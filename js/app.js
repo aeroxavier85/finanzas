@@ -94,13 +94,9 @@ function guardarReintentos(lista) {
   try { localStorage.setItem('finanzas-reintentos', JSON.stringify(lista)); } catch (e) {}
 }
 
-function textoReintento(concepto) {
-  return 'No se guardó: ' + (concepto || 'el movimiento') + '. Toca para intentar de nuevo.';
-}
-
 function agregarReintento(item) {
   var lista = leerReintentos().filter(function (r) { return r.movimientoId !== item.movimientoId; });
-  if (!item.texto) item.texto = textoReintento(item.concepto);
+  item.fallo = new Date().toISOString();
   lista.push(item);
   guardarReintentos(lista);
   pintarReintentos();
@@ -116,11 +112,57 @@ function pintarReintentos() {
   if (!caja) return;
   Formato.vaciar(caja);
   leerReintentos().forEach(function (item) {
-    var boton = Formato.nodo('button', 'reintento', item.texto || textoReintento(item.concepto));
+    var boton = Formato.nodo('button', 'reintento', Reintento.aviso(item));
     boton.type = 'button';
-    boton.addEventListener('click', function () { reintentar(item); });
+    boton.addEventListener('click', function () { abrirReintento(item); });
     caja.appendChild(boton);
   });
+}
+
+function abrirReintento(item) {
+  var caja = Formato.nodo('div', 'acciones');
+  caja.appendChild(Formato.nodo('h2', '', 'No se guardó'));
+  caja.appendChild(Formato.nodo('p', 'meta', 'Esto quedó pendiente en este celular. Revisa el error y decide qué hacer.'));
+  var lista = Formato.nodo('dl', 'reintento-detalle');
+  Reintento.detalle(item).forEach(function (fila) {
+    lista.appendChild(Formato.nodo('dt', '', fila[0]));
+    lista.appendChild(Formato.nodo('dd', fila[0] === 'Error' ? 'reintento-error' : '', fila[1]));
+  });
+  caja.appendChild(lista);
+
+  var otraVez = Formato.nodo('button', 'boton', 'Intentar de nuevo');
+  otraVez.type = 'button';
+  otraVez.addEventListener('click', function () {
+    cerrarPanel();
+    reintentar(item);
+  });
+  caja.appendChild(otraVez);
+
+  if (Reintento.sePuedeCorregir(item)) {
+    var corregir = Formato.nodo('button', 'boton boton-secundario', 'Corregir y guardar');
+    corregir.type = 'button';
+    corregir.addEventListener('click', function () {
+      var base = item.accion === 'actualizar' ? (buscarEnMemoria(item.datos.id) || {}) : {};
+      var m = movimientoDesdePayload(item.datos, base);
+      if (item.accion === 'crear') delete m.id;
+      abrirMovimiento(m, item.movimientoId);
+    });
+    caja.appendChild(corregir);
+  }
+
+  var descartar = Formato.nodo('button', 'boton boton-peligro', 'Descartar');
+  descartar.type = 'button';
+  descartar.addEventListener('click', function () {
+    if (!window.confirm('¿Descartar este registro? No se guardará.')) return;
+    quitarReintento(item.movimientoId);
+    if (item.accion === 'crear') quitarDeMemoria(item.movimientoId);
+    cerrarPanel();
+    pintarPantallas();
+    aviso('Listo, ya no aparece.');
+    traerMovimientos();
+  });
+  caja.appendChild(descartar);
+  abrirPanel(caja);
 }
 
 function reintentar(item) {
@@ -142,12 +184,14 @@ function reintentar(item) {
         if (r.movimiento) reemplazarEnMemoria(r.movimiento);
         item.accion = 'origen';
         item.datos = r.datosOrigen;
-        item.texto = 'No se guardó desde dónde salió: ' + item.concepto + '. Toca para intentar de nuevo.';
-        guardarReintentos(leerReintentos().map(function (x) {
-          return x.movimientoId === item.movimientoId ? item : x;
-        }));
       }
+      item.error = (r && r.error) || 'Sin respuesta del servidor';
+      item.fallo = new Date().toISOString();
+      guardarReintentos(leerReintentos().map(function (x) {
+        return x.movimientoId === item.movimientoId ? item : x;
+      }));
       pintarPantallas();
+      aviso('Sigue sin guardarse: ' + item.error);
       return;
     }
     quitarReintento(item.movimientoId);

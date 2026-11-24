@@ -301,7 +301,7 @@ function marcarPagado(id, origen) {
         concepto: concepto,
         accion: 'origen',
         datos: r.datosOrigen,
-        texto: 'No se guardó desde dónde salió: ' + concepto + '. Toca para intentar de nuevo.'
+        error: r.error
       });
     } else if (anterior) {
       reemplazarEnMemoria(anterior);
@@ -310,7 +310,7 @@ function marcarPagado(id, origen) {
         concepto: concepto,
         accion: 'pagar',
         datos: { id: id, pagadoDesde: origen || '' },
-        texto: textoReintento(concepto)
+        error: r.error
       });
     } else {
       agregarReintento({
@@ -318,7 +318,7 @@ function marcarPagado(id, origen) {
         concepto: concepto,
         accion: 'pagar',
         datos: { id: id, pagadoDesde: origen || '' },
-        texto: textoReintento(concepto)
+        error: r.error
       });
     }
     cerrarPanel();
@@ -342,7 +342,7 @@ function eliminarMovimiento(m) {
         concepto: m.concepto,
         accion: 'eliminar',
         datos: { id: m.id },
-        texto: textoReintento(m.concepto)
+        error: r.error
       });
       pintarPantallas();
       return;

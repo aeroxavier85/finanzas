@@ -35,7 +35,7 @@ function nuevoMovimiento() {
   });
 }
 
-function abrirMovimiento(m) {
+function abrirMovimiento(m, reintentoViejo) {
   var caja = Formato.nodo('form', 'formulario');
   caja.appendChild(Formato.nodo('h2', '', m.id ? 'Editar' : 'Nuevo movimiento'));
 
@@ -185,6 +185,11 @@ function abrirMovimiento(m) {
       aviso('Escribe el monto. Sirve con coma o con punto.');
       return;
     }
+    if (!concepto.value.trim()) {
+      aviso('Escribe el concepto.');
+      concepto.focus();
+      return;
+    }
     var payload = {
       tipo: tipo.value,
       concepto: concepto.value,
@@ -210,6 +215,10 @@ function abrirMovimiento(m) {
     invalidarLectura();
     reemplazarEnMemoria(optimista);
     quitarReintento(optimista.id);
+    if (reintentoViejo) {
+      quitarReintento(reintentoViejo);
+      quitarDeMemoria(reintentoViejo);
+    }
     cerrarPanel();
     pintarPantallas();
     var pedido = payload.id ? Api.actualizarMovimiento(payload) : Api.crearMovimiento(payload);
@@ -222,7 +231,7 @@ function abrirMovimiento(m) {
           concepto: payload.concepto || 'el movimiento',
           accion: payload.id ? 'actualizar' : 'crear',
           datos: payload,
-          texto: textoReintento(payload.concepto)
+          error: r.error
         });
         pintarPantallas();
         return;

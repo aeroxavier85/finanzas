@@ -414,6 +414,15 @@ input, select {
   font: inherit;
   font-weight: 700;
 }
+.reintento-detalle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 4px 0 8px;
+}
+.reintento-detalle dt { color: var(--suave); }
+.reintento-detalle dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.reintento-detalle .reintento-error { color: var(--peligro); }
 .aviso {
   position: fixed;
   left: 16px; right: 16px;

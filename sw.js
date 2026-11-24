@@ -1,4 +1,4 @@
-var CACHE = 'finanzas-v41';
+var CACHE = 'finanzas-v42';
 var ARCHIVOS = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ var ARCHIVOS = [
   './js/formulario.js',
   './js/recurrentes.js',
   './js/mesada.js',
+  './js/reintentos.js',
   './js/app.js',
   './manifest.webmanifest',
   './icon-180.png',
