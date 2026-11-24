@@ -131,11 +131,7 @@ function pintarResumenFiltros() {
 }
 
 function montoVisible(m) {
-  var estado = String(m.estado || '').toLowerCase();
-  if ((estado === 'pagado' || estado === 'recibido') && m.montoReal !== '' && m.montoReal !== null && m.montoReal !== undefined) {
-    return Number(m.montoReal);
-  }
-  return Number(m.monto || 0);
+  return Number(Dinero.montoVisible(m) || 0);
 }
 
 function tarjetaMovimiento(m) {

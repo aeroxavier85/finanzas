@@ -49,6 +49,8 @@ function movimientoDesdePayload(payload, base) {
   if (payload.corteManual === 'Sí') {
     m.corteClave = payload.corteClave || '';
     m.corte = payload.corte || 'Sin asignar';
+  } else if (payload.corteManual === undefined && esManual(m)) {
+    // Sin cambio de corte: se queda el que tenía.
   } else {
     var corte = Corte.calcularCorte(payload.fecha);
     m.corteClave = corte.clave;

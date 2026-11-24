@@ -135,6 +135,34 @@ var Dinero = (function () {
     return redondear(total);
   }
 
+  function hecho(estado) {
+    var e = norm(estado);
+    return e === 'pagado' || e === 'recibido';
+  }
+
+  function tieneValor(v) {
+    return v !== '' && v !== null && v !== undefined;
+  }
+
+  // El monto que se ve: lo que de verdad se pagó si ya está pagado, si no el plan.
+  function montoVisible(m) {
+    if (!m || !tieneValor(m.monto)) return '';
+    if (hecho(m.estado) && tieneValor(m.montoReal)) return redondear(numero(m.montoReal));
+    return redondear(numero(m.monto) || 0);
+  }
+
+  // Qué guardar de monto y monto real cuando el formulario tiene un solo campo.
+  // Si no se tocó el número, no cambia nada de lo guardado.
+  function montosAlGuardar(base, escrito, estado) {
+    var valor = redondear(escrito);
+    var listo = hecho(estado);
+    if (base && tieneValor(base.monto) && montoVisible(base) === valor) {
+      if (listo && !tieneValor(base.montoReal)) return { montoReal: valor };
+      return {};
+    }
+    return { monto: valor, montoReal: listo ? valor : '' };
+  }
+
   function ahorros(lista) {
     return {
       mia: saldoAhorro(lista, 'Mia'),
@@ -153,7 +181,9 @@ var Dinero = (function () {
     baseAhorro: baseAhorro,
     saldoAhorro: saldoAhorro,
     ahorros: ahorros,
-    conArrastre: conArrastre
+    conArrastre: conArrastre,
+    montoVisible: montoVisible,
+    montosAlGuardar: montosAlGuardar
   };
 })();
 

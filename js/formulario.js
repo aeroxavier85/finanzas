@@ -30,7 +30,7 @@ function nuevoMovimiento() {
     tipo: 'Gasto',
     estado: 'Pendiente',
     monto: '',
-    fecha: '',
+    fecha: fechaDeHoy(),
     corteManual: 'No'
   });
 }
@@ -43,19 +43,18 @@ function abrirMovimiento(m, reintentoViejo) {
     ['Gasto', 'Gasto'],
     ['Ingreso', 'Ingreso']
   ], m.tipo || 'Gasto');
-  var concepto = inputTexto(m.concepto || '', 'Ej. Luz');
+  var concepto = inputTexto(m.concepto || '', 'Ej. Luz de noviembre');
   var categoria = document.createElement('select');
   var ahorroCat = document.createElement('select');
   var campoCategoria = Formato.campo('Categoría gasto', categoria);
   var etiquetaCategoria = campoCategoria.querySelector('span');
   var campoAhorro = Formato.campo('Categoría ahorro', ahorroCat);
-  var monto = inputNumero(m.monto);
-  var montoReal = inputNumero(m.montoReal);
+  var monto = inputNumero(Dinero.montoVisible(m));
   var fecha = document.createElement('input');
   fecha.type = 'date';
   fecha.value = m.fecha || '';
   var estado = document.createElement('select');
-  var notas = inputTexto(m.notas || '', '');
+  var notasViejas = String(m.notas || '').replace(/^Pagado desde: [^.]+\.?\s*/, '').trim();
   var pago = opcionesDePago();
   var valorOrigen = 'De la casa';
   pago.forEach(function (op) {
@@ -63,8 +62,6 @@ function abrirMovimiento(m, reintentoViejo) {
   });
   var origen = selectCon(pago, valorOrigen);
   var campoOrigen = Formato.campo('Sale de', origen);
-  var cortePreview = Formato.nodo('p', 'corte-preview', '');
-  var corteManual = document.createElement('select');
 
   function refrescarListas() {
     var esGasto = tipo.value === 'Gasto';
@@ -106,28 +103,6 @@ function abrirMovimiento(m, reintentoViejo) {
     estadosDe(tipo.value).forEach(function (nombre) { estado.appendChild(new Option(nombre, nombre)); });
     estado.value = actualEstado || (tipo.value === 'Ingreso' ? 'Esperado' : 'Pendiente');
     campoOrigen.style.display = esGasto ? '' : 'none';
-    refrescarCortes();
-  }
-
-  function refrescarCortes() {
-    var elegido = corteManual.value;
-    Formato.vaciar(corteManual);
-    corteManual.appendChild(new Option('Calcular con la fecha', ''));
-    var periodo = fecha.value ? fecha.value.slice(0, 7) : (Datos.mes || '');
-    Corte.cortesDelMes(periodo).forEach(function (c) {
-      var opcion = new Option(Formato.rango(c.inicio, c.fin), c.clave);
-      opcion.dataset.etiqueta = c.etiqueta;
-      corteManual.appendChild(opcion);
-    });
-    corteManual.appendChild(new Option('Sin asignar', 'sin-asignar'));
-    if (elegido) corteManual.value = elegido;
-    else if (esManual(m) && !fecha.dataset.tocada) {
-      corteManual.value = m.corteClave || 'sin-asignar';
-    }
-    var auto = Corte.calcularCorte(fecha.value);
-    cortePreview.textContent = corteManual.value
-      ? 'Corte elegido a mano'
-      : 'Corte: ' + (auto.clave ? Formato.rango(auto.inicio, auto.fin) : 'Sin asignar');
   }
 
   categoria.addEventListener('change', function () {
@@ -137,42 +112,17 @@ function abrirMovimiento(m, reintentoViejo) {
     if (ahorroCat.value) categoria.value = '';
   });
   tipo.addEventListener('change', refrescarListas);
-  fecha.addEventListener('change', function () {
-    fecha.dataset.tocada = '1';
-    refrescarCortes();
-  });
-  corteManual.addEventListener('change', refrescarCortes);
   refrescarListas();
 
   caja.appendChild(Formato.campo('Tipo', tipo));
   caja.appendChild(Formato.campo('Concepto', concepto));
+  if (notasViejas) caja.appendChild(Formato.nodo('p', 'meta', 'Detalle anterior: ' + notasViejas));
+  caja.appendChild(Formato.campo('Monto', monto));
+  caja.appendChild(Formato.campo('Fecha', fecha));
   caja.appendChild(campoCategoria);
   caja.appendChild(campoAhorro);
-  caja.appendChild(Formato.campo('Monto', monto));
-  caja.appendChild(Formato.campo('Monto real', montoReal));
-  caja.appendChild(Formato.campo('Fecha', fecha));
-  caja.appendChild(cortePreview);
   caja.appendChild(Formato.campo('Estado', estado));
   caja.appendChild(campoOrigen);
-  caja.appendChild(Formato.campo('Notas', notas));
-  caja.appendChild(Formato.campo('Corte', corteManual));
-
-  var diferencia = Formato.nodo('p', 'diferencia', '');
-  function pintarDiferencia() {
-    var plan = Dinero.numero(monto.value);
-    var real = Dinero.numero(montoReal.value);
-    if (plan === null || real === null) {
-      diferencia.textContent = '';
-      return;
-    }
-    var delta = Dinero.redondear(real - plan);
-    var signo = delta > 0 ? '+' : '';
-    diferencia.textContent = 'Diferencia: ' + signo + Formato.moneda(delta);
-  }
-  monto.addEventListener('input', pintarDiferencia);
-  montoReal.addEventListener('input', pintarDiferencia);
-  pintarDiferencia();
-  caja.appendChild(diferencia);
 
   var guardar = Formato.nodo('button', 'boton', m.id ? 'Guardar' : 'Agregar');
   guardar.type = 'submit';
@@ -180,7 +130,6 @@ function abrirMovimiento(m, reintentoViejo) {
   caja.addEventListener('submit', function (ev) {
     ev.preventDefault();
     var plan = Dinero.numero(monto.value);
-    var real = Dinero.numero(montoReal.value);
     if (plan === null || plan < 0) {
       aviso('Escribe el monto. Sirve con coma o con punto.');
       return;
@@ -190,27 +139,28 @@ function abrirMovimiento(m, reintentoViejo) {
       concepto.focus();
       return;
     }
+    var anterior = m.id ? copiarMovimiento(buscarEnMemoria(m.id) || m) : null;
     var payload = {
       tipo: tipo.value,
-      concepto: concepto.value,
+      concepto: concepto.value.trim(),
       categoria: (tipo.value === 'Gasto' && ahorroCat.value) ? ahorroCat.value : categoria.value,
-      monto: Dinero.redondear(plan),
-      montoReal: real === null ? '' : Dinero.redondear(real),
       fecha: fecha.value,
       estado: estado.value,
-      pagadoDesde: tipo.value === 'Gasto' ? origen.value : '',
-      notas: notas.value
+      pagadoDesde: tipo.value === 'Gasto' ? origen.value : ''
     };
-    if (corteManual.value) {
-      payload.corteManual = 'Sí';
-      payload.corteClave = corteManual.value === 'sin-asignar' ? '' : corteManual.value;
-      var opcion = corteManual.options[corteManual.selectedIndex];
-      payload.corte = opcion && opcion.dataset.etiqueta ? opcion.dataset.etiqueta : (opcion ? opcion.text : '');
-    } else {
+    var montos = Dinero.montosAlGuardar(anterior, plan, estado.value);
+    Object.keys(montos).forEach(function (k) { payload[k] = montos[k]; });
+    if (!anterior) {
+      payload.notas = '';
       payload.corteManual = 'No';
+    } else {
+      // Las notas viejas se quedan; solo se quita la marca de ahorro si ahora sale de la casa.
+      var tieneMarca = /^Pagado desde:/i.test(String(anterior.notas || ''));
+      if (tieneMarca && !Dinero.baseAhorro(payload.pagadoDesde)) payload.notas = notasViejas;
+      // El corte va con la fecha; uno elegido a mano antes se respeta mientras la fecha no cambie.
+      if (!esManual(anterior) || fecha.value !== (anterior.fecha || '')) payload.corteManual = 'No';
+      payload.id = m.id;
     }
-    if (m.id) payload.id = m.id;
-    var anterior = m.id ? copiarMovimiento(buscarEnMemoria(m.id) || m) : null;
     var optimista = movimientoDesdePayload(payload, anterior || m);
     invalidarLectura();
     reemplazarEnMemoria(optimista);
